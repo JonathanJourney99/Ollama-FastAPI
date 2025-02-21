@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat UI with Uiverse Card</title>
+    <style>
+        body {
+            font-family: Montserrat, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #f0f0f0;
+            margin: 0;
+        }
+        .header {
+            width: 520px;
+            background: #fff;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 12px;
+            box-shadow: 6px 6px 0 #000;
+            border: 3px solid #000;
+            margin-bottom: 20px;
+        }
+        .chat-container {
+            width: 500px;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 10px 10px 0 #000;
+            border: 3px solid #000;
+        }
+        .chat-box {
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            border: 2px solid #000;
+            padding: 15px;
+            background: #fafafa;
+            font-size: 16px;
+        }
+        .message {
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        .user-message {
+            background: #4ade80;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+        }
+        .bot-message {
+            background: #ff66a3;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+        }
+        .input-container {
+            display: flex;
+        }
+        .input-field {
+            flex: 1;
+            padding: 12px;
+            border: 3px solid #000;
+            font-size: 16px;
+        }
+        .send-button {
+            padding: 10px 14px;
+            margin-left: 5px;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            background: #4ade80;
+            cursor: pointer;
+            font-weight: 750;
+            transition: all 0.3s ease;
+        }
+        .send-button:hover {
+            translate: 1.5px 1.5px;
+            box-shadow: 1.5px 1.5px 0 #000;
+            background: #1ac2ff;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 30px;
+        }
+        .loading svg polyline {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .loading svg polyline#back {
+            fill: none;
+            stroke: #ff4d5033;
+        }
+        .loading svg polyline#front {
+            fill: none;
+            stroke: #ff4d4f;
+            stroke-dasharray: 48, 144;
+            stroke-dashoffset: 192;
+            animation: dash_682 1.4s linear infinite;
+        }
+        @keyframes dash_682 {
+            72.5% {
+                opacity: 0;
+            }
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">Chat with AI</div>
+
+    <div class="chat-container">
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-message">Hello! How can I assist you today?</div>
+        </div>
+        <div class="input-container">
+            <input type="text" id="userInput" class="input-field" placeholder="Type a message...">
+            <button class="send-button" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById("userInput");
+            const chatBox = document.getElementById("chatBox");
+
+            if (input.value.trim() === "") return;
+
+            // Append user's message
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user-message";
+            userMessage.textContent = input.value;
+            chatBox.appendChild(userMessage);
+
+            // Loading animation
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "loading";
+            loadingDiv.innerHTML = `
+                <svg width="40" height="15" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
+                    <polyline id="back" points="10,15 30,15 50,15 70,15 90,15 110,15"/>
+                    <polyline id="front" points="10,15 30,15 50,15 70,15 90,15 110,15"/>
+                </svg>
+            `;
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Send user input to FastAPI backend
+            const userInput = input.value;
+            input.value = "";
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/model-generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userprompt: userInput })
+                });
+
+                const data = await response.json();
+
+                // Remove loading animation
+                chatBox.removeChild(loadingDiv);
+
+                // Append bot's response
+                const botMessage = document.createElement("div");
+                botMessage.className = "message bot-message";
+                botMessage.textContent = data.resp;
+                chatBox.appendChild(botMessage);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (error) {
+                console.error("Error:", error);
+                chatBox.removeChild(loadingDiv);
+            }
+        }
+    </script>
+</body>
+</html>
